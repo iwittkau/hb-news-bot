@@ -1,0 +1,9 @@
+version: "3"
+services:
+  bot:
+    image: hb-press-bot
+    restart: always
+    volumes:
+      - "./bolt.db:/bolt.db"
+      - "./mastodon.json:/mastodon.json:ro"
+    command: -publisher mastodon -fetcher http
