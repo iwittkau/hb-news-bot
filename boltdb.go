@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/iwittkau/hb-news-bot/internal"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -31,8 +32,8 @@ func newDB(path string) (*db, error) {
 
 var errItemNotFound = errors.New("item not found")
 
-func (db *db) Get(id string) (*Item, error) {
-	var i *Item
+func (db *db) Get(id string) (*internal.Item, error) {
+	var i *internal.Item
 	err := db.bolt.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucketPostStatus))
 		var err error
@@ -45,8 +46,8 @@ func (db *db) Get(id string) (*Item, error) {
 	return i, nil
 }
 
-func viewItem(id string, tx *bolt.Tx, b *bolt.Bucket) (*Item, error) {
-	var i Item
+func viewItem(id string, tx *bolt.Tx, b *bolt.Bucket) (*internal.Item, error) {
+	var i internal.Item
 	data := b.Get([]byte(id))
 	if data == nil {
 		return nil, errItemNotFound
@@ -58,7 +59,7 @@ func viewItem(id string, tx *bolt.Tx, b *bolt.Bucket) (*Item, error) {
 	return &i, nil
 }
 
-func (db *db) SetPublished(i Item) (bool /*previously published*/, error) {
+func (db *db) SetPublished(i internal.Item) (bool /*previously published*/, error) {
 	var posted bool
 	err := db.bolt.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucketPostStatus))

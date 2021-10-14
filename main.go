@@ -15,6 +15,8 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/iwittkau/hb-news-bot/internal"
+	"github.com/iwittkau/hb-news-bot/internal/mastodon"
 )
 
 const (
@@ -30,25 +32,12 @@ const (
 
 var spacesExpr = regexp.MustCompile(`\s+`)
 
-type Item struct {
-	Date     time.Time
-	Title    string
-	Category string
-	URL      string
-	ID       string
-}
-
-type publisher interface {
-	Publish(context.Context, Item) error
-	Skip(context.Context, Item)
-}
-
 type fetcher interface {
 	Fetch(ctx context.Context, url string) (io.ReadCloser, error)
 }
 
 type aggregate struct {
-	pub   publisher
+	pub   internal.Publisher
 	fetch fetcher
 	db    *db
 }
@@ -68,7 +57,7 @@ func run() error {
 	)
 	flag.StringVar(&intv, "interval", "1h", "set interval for checking the source")
 	flag.StringVar(&dbPath, "db", "bolt.db", "set path to db file")
-	flag.StringVar(&pubType, "publisher", "log", `set publisher type ["log"]`)
+	flag.StringVar(&pubType, "publisher", "log", `set publisher type ["log", "mastodon"]`)
 	flag.StringVar(&fetchType, "fetcher", "static", `set fetcher type ["static", "http"]`)
 	flag.Parse()
 	var (
@@ -79,10 +68,18 @@ func run() error {
 		return fmt.Errorf("parsing interval: %w", err)
 	}
 
-	var pub publisher
+	var pub internal.Publisher
 	switch pubType {
 	case publisherTypeLog:
 		pub = &logPublisher{}
+	case "mastodon":
+		c, err := mastodon.LoadConfig("mastodon.json")
+		if err != nil {
+			return fmt.Errorf("loading mastodon config: %w", err)
+		}
+		if pub, err = mastodon.NewClient(c); err != nil {
+			return fmt.Errorf("mastodon publisher: %w", err)
+		}
 	default:
 		return fmt.Errorf("unknown publisher type: %q", pubType)
 	}
@@ -150,7 +147,7 @@ func (a *aggregate) run(ctx context.Context) error {
 	return nil
 }
 
-func (a *aggregate) publish(ctx context.Context, items []Item) error {
+func (a *aggregate) publish(ctx context.Context, items []internal.Item) error {
 	for _, i := range items {
 		published, err := a.db.SetPublished(i)
 		if err != nil {
@@ -167,15 +164,15 @@ func (a *aggregate) publish(ctx context.Context, items []Item) error {
 	return nil
 }
 
-func extractItems(ctx context.Context, r io.Reader) ([]Item, error) {
+func extractItems(ctx context.Context, r io.Reader) ([]internal.Item, error) {
 	doc, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
 		return nil, fmt.Errorf("creating document: %w", err)
 	}
-	var res []Item
+	var res []internal.Item
 	table := doc.Find(tableSelector)
 	table.Children().EachWithBreak(func(_ int, s *goquery.Selection) bool {
-		i := Item{}
+		i := internal.Item{}
 		s.Children().EachWithBreak(func(_ int, s *goquery.Selection) bool {
 			if err = itemExtraction(s, &i); err != nil {
 				return false
@@ -196,7 +193,7 @@ func extractItems(ctx context.Context, r io.Reader) ([]Item, error) {
 	return res, err
 }
 
-func itemExtraction(s *goquery.Selection, i *Item) error {
+func itemExtraction(s *goquery.Selection, i *internal.Item) error {
 	v, ok := s.Attr("headers")
 	if !ok {
 		return nil

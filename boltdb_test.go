@@ -4,6 +4,8 @@ import (
 	"path"
 	"reflect"
 	"testing"
+
+	"github.com/iwittkau/hb-news-bot/internal"
 )
 
 func Test_db_SetPublished(t *testing.T) {
@@ -14,7 +16,7 @@ func Test_db_SetPublished(t *testing.T) {
 	}
 	t.Cleanup(func() { db.Close() })
 
-	i := Item{ID: "1234", Title: "Title"}
+	i := internal.Item{ID: "1234", Title: "Title"}
 	ok, err := db.SetPublished(i)
 	if err != nil {
 		t.Error(err)

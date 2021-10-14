@@ -11,6 +11,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/iwittkau/hb-news-bot/internal"
 )
 
 func TestDownload(t *testing.T) {
@@ -55,13 +57,13 @@ func Test_extractItems(t *testing.T) {
 	}
 }
 
-func readGoldenItems(t *testing.T) []Item {
+func readGoldenItems(t *testing.T) []internal.Item {
 	t.Helper()
 	data, err := os.ReadFile("testdata/items_golden.json")
 	if err != nil {
 		t.Fatalf("reading golden items: %v", err)
 	}
-	var golden []Item
+	var golden []internal.Item
 	if err := json.Unmarshal(data, &golden); err != nil {
 		t.Fatalf("unmarshaling golden items: %v", err)
 	}
@@ -71,18 +73,18 @@ func readGoldenItems(t *testing.T) []Item {
 type testPublisher struct {
 	sync.Mutex
 
-	Published []Item
-	Skipped   []Item
+	Published []internal.Item
+	Skipped   []internal.Item
 }
 
-func (p *testPublisher) Publish(ctx context.Context, i Item) error {
+func (p *testPublisher) Publish(ctx context.Context, i internal.Item) error {
 	p.Lock()
 	defer p.Unlock()
 	p.Published = append(p.Published, i)
 	return nil
 }
 
-func (p *testPublisher) Skip(ctx context.Context, i Item) {
+func (p *testPublisher) Skip(ctx context.Context, i internal.Item) {
 	p.Lock()
 	defer p.Unlock()
 	p.Skipped = append(p.Skipped, i)
