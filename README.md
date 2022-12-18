@@ -1,4 +1,9 @@
+# ARCHIVED
+
+**This project has been archived because the official accounts joined Mastodon and I stopped using this bot.**
+
 # 🤖 hb-press-bot
+
 
 This is running on a server and posting news from [Medienservice der Senatskanzlei](https://www.senatspressestelle.bremen.de/) ("Bremen Senate Chancellery Mediaservice") to the [Senatspressestelle inoffiziell](https://norden.social/web/accounts/107096555807402379#) Mastodon account.
 
